@@ -15,9 +15,17 @@ CONFIG_FILE_JSON = Path.home() / ".git-commit-ai.json"
 ENV_FILE = Path(".env")
 
 DEFAULT_PROMPT = (
-    "Genera un mensaje de commit siguiendo la convención de 'Conventional Commits'. "
-    "Usa el formato: <tipo>: <descripción corta en minúsculas>.\n"
-    "Cambios realizados:\n\n"
+    "Generate a commit message in English following the Conventional Commits specification.\n"
+    "Rules:\n"
+    "- Format: <type>(<optional scope>): <description>\n"
+    "- Types: feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert\n"
+    "- Write the message in English\n"
+    "- Description must be in imperative mood (e.g., 'add' not 'added' or 'adds')\n"
+    "- Keep the first line under 50 characters, max 72\n"
+    "- Do NOT end the description with a period\n"
+    "- Use lowercase for the description\n"
+    "- Only output the commit message, nothing else\n\n"
+    "Changes:\n\n"
 )
 
 def get_config_value(key: str) -> Optional[str]:
@@ -71,7 +79,7 @@ def call_llm(diff: str) -> str:
     payload = {
         "model": model,
         "messages": [
-            {"role": "system", "content": "Eres un experto en commits."},
+            {"role": "system", "content": "You are an expert at writing concise, clear git commit messages in English following Conventional Commits."},
             {"role": "user", "content": f"{DEFAULT_PROMPT}{diff}"}
         ],
         "temperature": 0.2
