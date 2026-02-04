@@ -86,7 +86,7 @@ def call_llm(diff: str) -> str:
     }
 
     try:
-        response = requests.post(url, headers=headers, json=payload, timeout=30)
+        response = requests.post(url, headers=headers, json=payload, timeout=40)
         response.raise_for_status()
         return response.json()['choices'][0]['message']['content'].strip().replace('"', '')
     except Exception as e:
