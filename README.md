@@ -60,8 +60,11 @@ Crea un archivo `.env` en la raíz del directorio donde está el script con el s
 ```ini
 LLM_HOST=http://localhost:11434
 MODEL_NAME=llama3
+FALLBACK_MODEL=llama3.1
 COMMIT_API_KEY=ollama
 ```
+
+`FALLBACK_MODEL` es opcional. Si el modelo principal falla, la herramienta reintenta una vez con este modelo.
 
 ## 🛠 Configuración de Acceso Rápido (Alias)
 

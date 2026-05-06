@@ -65,17 +65,7 @@ def get_staged_diff() -> str:
         print("❌ Error: No se pudo acceder a Git.")
         sys.exit(1)
 
-def call_llm(diff: str) -> str:
-    host = get_config_value("LLM_HOST")
-    model = get_config_value("MODEL_NAME")
-    key = get_config_value("COMMIT_API_KEY")
-
-    if not all([host, model, key]):
-        print("❌ Faltan configuraciones. Ejecuta git-commit-ai --config o revisa tu .env")
-        sys.exit(1)
-
-    url = f"{host}/v1/chat/completions"
-    headers = {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
+def request_commit_message(url: str, headers: dict, diff: str, model: str) -> str:
     payload = {
         "model": model,
         "messages": [
@@ -84,13 +74,37 @@ def call_llm(diff: str) -> str:
         ],
         "temperature": 0.2
     }
+    response = requests.post(url, headers=headers, json=payload, timeout=40)
+    response.raise_for_status()
+    return response.json()['choices'][0]['message']['content'].strip().replace('"', '')
+
+def call_llm(diff: str) -> str:
+    host = get_config_value("LLM_HOST")
+    primary_model = get_config_value("MODEL_NAME")
+    fallback_model = get_config_value("FALLBACK_MODEL")
+    key = get_config_value("COMMIT_API_KEY")
+
+    if not all([host, primary_model, key]):
+        print("❌ Faltan configuraciones. Ejecuta git-commit-ai --config o revisa tu .env")
+        sys.exit(1)
+
+    url = f"{host}/v1/chat/completions"
+    headers = {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
 
     try:
-        response = requests.post(url, headers=headers, json=payload, timeout=40)
-        response.raise_for_status()
-        return response.json()['choices'][0]['message']['content'].strip().replace('"', '')
-    except Exception as e:
-        print(f"❌ Error LLM: {e}")
+        return request_commit_message(url, headers, diff, primary_model)
+    except Exception as primary_error:
+        if fallback_model:
+            try:
+                return request_commit_message(url, headers, diff, fallback_model)
+            except Exception as fallback_error:
+                print(
+                    "❌ Both primary and fallback model attempts failed. "
+                    f"Primary ({primary_model}): {primary_error} | "
+                    f"Fallback ({fallback_model}): {fallback_error}"
+                )
+                sys.exit(1)
+        print(f"❌ Error LLM: {primary_error}")
         sys.exit(1)
 
 def main():
